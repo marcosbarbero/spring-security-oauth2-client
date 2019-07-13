@@ -1,0 +1,8 @@
+security:
+  oauth2:
+    client:
+      client-id: clientId
+      client-secret: secret
+      grant-type: client_credentials
+      scope: read
+      access-token-uri: http://localhost:9001/oauth/token
