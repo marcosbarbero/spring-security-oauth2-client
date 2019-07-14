@@ -16,14 +16,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
-import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@EnableConfigurationProperties
+import static java.util.stream.Collectors.toMap;
+
+@EnableConfigurationProperties(Oauth2ClientApplication.AppProperties.class)
 @SpringBootApplication(exclude = SecurityAutoConfiguration.class)
 public class Oauth2ClientApplication {
 
@@ -39,7 +40,6 @@ public class Oauth2ClientApplication {
     }
 
     // Custom OAuth2 binding
-    @Component
     @ConfigurationProperties(prefix = "app")
     static class AppProperties implements BeanFactoryAware, InitializingBean {
         private BeanFactory beanFactory;
@@ -64,19 +64,22 @@ public class Oauth2ClientApplication {
          * and satisfied {@link BeanFactoryAware}, {@code ApplicationContextAware} etc.
          * <p>This method allows the bean instance to perform validation of its overall
          * configuration and final initialization when all bean properties have been set.
-         *
-         * @throws Exception in the event of misconfiguration (such as failure to set an
-         *                   essential property) or if initialization fails for any other reason
          */
         @Override
-        public void afterPropertiesSet() throws Exception {
+        public void afterPropertiesSet() {
             getOAuth2RestTemplates().forEach(((DefaultListableBeanFactory) beanFactory)::registerSingleton);
         }
 
         private Map<String, OAuth2RestTemplate> getOAuth2RestTemplates() {
-            Map<String, OAuth2RestTemplate> templates = new HashMap<>();
-            getOauth2().forEach((k, v) -> templates.put(k, new OAuth2RestTemplate(v)));
-            return templates;
+            return getOauth2()
+                    .entrySet()
+                    .stream()
+                    .collect(
+                            toMap(
+                                    Map.Entry::getKey,
+                                    entry -> new OAuth2RestTemplate(entry.getValue())
+                            )
+                    );
         }
 
     }
