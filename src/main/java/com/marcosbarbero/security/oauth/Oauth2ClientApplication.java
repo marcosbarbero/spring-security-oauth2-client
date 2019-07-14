@@ -1,15 +1,29 @@
 package com.marcosbarbero.security.oauth;
 
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanFactory;
+import org.springframework.beans.factory.BeanFactoryAware;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
+import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
+import java.util.Map;
+
+@EnableConfigurationProperties
 @SpringBootApplication(exclude = SecurityAutoConfiguration.class)
 public class Oauth2ClientApplication {
 
@@ -17,24 +31,78 @@ public class Oauth2ClientApplication {
         SpringApplication.run(Oauth2ClientApplication.class, args);
     }
 
+    // Using Spring Boot AutoConfiguration
     @Bean
+    @Qualifier("autoconfig")
     public OAuth2RestTemplate oAuth2RestTemplate(final OAuth2ProtectedResourceDetails details) {
         return new OAuth2RestTemplate(details);
     }
 
+    // Custom OAuth2 binding
+    @Component
+    @ConfigurationProperties(prefix = "app")
+    static class AppProperties implements BeanFactoryAware, InitializingBean {
+        private BeanFactory beanFactory;
+
+        private Map<String, ClientCredentialsResourceDetails> oauth2 = new HashMap<>();
+
+        public Map<String, ClientCredentialsResourceDetails> getOauth2() {
+            return oauth2;
+        }
+
+        public void setOauth2(Map<String, ClientCredentialsResourceDetails> oauth2) {
+            this.oauth2 = oauth2;
+        }
+
+        @Override
+        public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
+            this.beanFactory = beanFactory;
+        }
+
+        /**
+         * Invoked by the containing {@code BeanFactory} after it has set all bean properties
+         * and satisfied {@link BeanFactoryAware}, {@code ApplicationContextAware} etc.
+         * <p>This method allows the bean instance to perform validation of its overall
+         * configuration and final initialization when all bean properties have been set.
+         *
+         * @throws Exception in the event of misconfiguration (such as failure to set an
+         *                   essential property) or if initialization fails for any other reason
+         */
+        @Override
+        public void afterPropertiesSet() throws Exception {
+            getOAuth2RestTemplates().forEach(((DefaultListableBeanFactory) beanFactory)::registerSingleton);
+        }
+
+        private Map<String, OAuth2RestTemplate> getOAuth2RestTemplates() {
+            Map<String, OAuth2RestTemplate> templates = new HashMap<>();
+            getOauth2().forEach((k, v) -> templates.put(k, new OAuth2RestTemplate(v)));
+            return templates;
+        }
+
+    }
+
     @RestController
-    class ProfileController {
+    class ProtectedController {
 
         private final OAuth2RestTemplate oAuth2RestTemplate;
+        private final Map<String, OAuth2RestTemplate> oAuth2RestTemplates;
 
-        ProfileController(OAuth2RestTemplate oAuth2RestTemplate) {
+        ProtectedController(@Qualifier("autoconfig") final OAuth2RestTemplate oAuth2RestTemplate,
+                            final Map<String, OAuth2RestTemplate> oAuth2RestTemplates) {
             this.oAuth2RestTemplate = oAuth2RestTemplate;
+            this.oAuth2RestTemplates = oAuth2RestTemplates;
         }
 
-        @GetMapping("/protected")
-        public ResponseEntity<String> me() {
+        @GetMapping("/auto-config")
+        public ResponseEntity<String> secured() {
             return oAuth2RestTemplate.getForEntity("http://localhost:9001/profile/protected", String.class);
         }
+
+        @GetMapping("/custom-config")
+        public ResponseEntity<String> custom() {
+            return oAuth2RestTemplates.get("serviceId").getForEntity("http://localhost:9001/profile/protected", String.class);
+        }
+
     }
 
 }

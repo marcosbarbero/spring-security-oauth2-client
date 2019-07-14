@@ -1,0 +1,17 @@
+{
+  "groups": [
+    {
+      "name": "app",
+      "type": "com.marcosbarbero.security.oauth.Oauth2ClientApplication$AppProperties",
+      "sourceType": "com.marcosbarbero.security.oauth.Oauth2ClientApplication$AppProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "app.oauth2",
+      "type": "java.util.Map<java.lang.String,org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails>",
+      "sourceType": "com.marcosbarbero.security.oauth.Oauth2ClientApplication$AppProperties"
+    }
+  ],
+  "hints": []
+}
