@@ -3,6 +3,7 @@ package com.marcosbarbero.security.oauth;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
+import org.springframework.beans.factory.BeanInitializationException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
@@ -54,6 +55,16 @@ public class Oauth2ClientApplication {
             this.oauth2 = oauth2;
         }
 
+        /**
+         * Callback that supplies the owning factory to a bean instance.
+         * <p>Invoked after the population of normal bean properties
+         * but before an initialization callback such as
+         * {@link InitializingBean#afterPropertiesSet()} or a custom init-method.
+         * @param beanFactory owning BeanFactory (never {@code null}).
+         * The bean can immediately call methods on the factory.
+         * @throws BeansException in case of initialization errors
+         * @see BeanInitializationException
+         */
         @Override
         public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
             this.beanFactory = beanFactory;
