@@ -7,6 +7,7 @@ security:
       scope: read
       access-token-uri: http://localhost:9001/oauth/token
 
+# Custom configuration that allows to have multiple OAuth2RestTemplate beans
 app:
   oauth2:
     serviceId:
